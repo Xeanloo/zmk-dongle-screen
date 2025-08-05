@@ -153,4 +153,10 @@ config DONGLE_SCREEN_BATTERY_ACTIVE
     default y
     help
       If the Battery Widget should be active or not
+
+config DONGLE_SCREEN_LAST_WORDS_ACTIVE
+    bool "Enable last words widget"
+    default y
+    help
+      Enable display of the last typed word widget on the dongle screen.
 endif
