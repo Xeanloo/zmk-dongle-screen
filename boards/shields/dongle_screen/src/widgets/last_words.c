@@ -34,11 +34,11 @@ static bool is_letter_key(uint16_t keycode) {
 }
 
 static bool is_space_key(uint16_t keycode) {
-    return (keycode == HID_USAGE_KEY_KEYBOARD_SPACEBAR);
+    return (keycode == HID_USAGE_KEY_KEYPAD_SPACEBAR);
 }
 
 static bool is_backspace_key(uint16_t keycode) {
-    return (keycode == HID_USAGE_KEY_KEYBOARD_BACKSPACE);
+    return (keycode == HID_USAGE_KEY_KEYPAD_BACKSPACE);
 }
 
 static char keycode_to_char(uint16_t keycode) {
