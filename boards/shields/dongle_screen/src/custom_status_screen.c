@@ -81,10 +81,10 @@ lv_obj_t *zmk_display_status_screen()
     lv_obj_align(zmk_widget_mod_status_obj(&mod_widget), LV_ALIGN_CENTER, 0, 35);
 #endif
 
-#if CONFIG_DONGLE_SCREEN_LAST_WORDS_ACTIVE
-    zmk_widget_last_words_init(&last_words_widget, screen);
-    lv_obj_align(zmk_widget_last_words_obj(&last_words_widget), LV_ALIGN_TOP_RIGHT, -20, 20);
-#endif
+// #if CONFIG_DONGLE_SCREEN_LAST_WORDS_ACTIVE
+//     zmk_widget_last_words_init(&last_words_widget, screen);
+//     lv_obj_align(zmk_widget_last_words_obj(&last_words_widget), LV_ALIGN_TOP_RIGHT, -20, 20);
+// #endif
 
     return screen;
 }
