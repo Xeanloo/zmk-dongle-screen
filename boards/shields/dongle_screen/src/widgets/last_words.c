@@ -19,6 +19,8 @@ static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
 #define MAX_WORD_LENGTH 20
 #define MAX_WORDS 3
+#define DISPLAY_CHAR_LIMIT 10
+#define FADE_TIMEOUT_MS 3000
 
 struct last_words_state {
     char current_word[MAX_WORD_LENGTH + 1];
@@ -28,6 +30,9 @@ struct last_words_state {
 };
 
 static struct last_words_state state = {0};
+
+static int64_t last_activity_time = 0;
+static struct k_timer fade_timer;
 
 static bool is_letter_key(uint16_t keycode) {
     return (keycode >= HID_USAGE_KEY_KEYBOARD_A && keycode <= HID_USAGE_KEY_KEYBOARD_Z);
@@ -65,23 +70,44 @@ static void add_word_to_history(const char* word) {
     }
 }
 
+static void fade_out_display(struct k_timer *timer) {
+    struct zmk_widget_last_words *widget;
+    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
+        lv_label_set_text(widget->label, "");
+    }
+}
+
 static void update_display(void) {
     struct zmk_widget_last_words *widget;
-    char display_text[100] = "";
-    
-    // Show current word being typed
+    char display_text[DISPLAY_CHAR_LIMIT + 2] = ""; // +2 for "> " or null
+
+    // Show last DISPLAY_CHAR_LIMIT chars of current word or last word
+    const char *src = NULL;
     if (strlen(state.current_word) > 0) {
-        snprintf(display_text, sizeof(display_text), "> %s", state.current_word);
+        src = state.current_word;
     } else if (state.word_count > 0) {
-        // Show last completed word
-        snprintf(display_text, sizeof(display_text), "%s", state.words[0]);
+        src = state.words[0];
+    }
+
+    if (src) {
+        int len = strlen(src);
+        const char *start = len > DISPLAY_CHAR_LIMIT ? src + len - DISPLAY_CHAR_LIMIT : src;
+        snprintf(display_text, sizeof(display_text), ">%s", start);
     } else {
         strcpy(display_text, "...");
     }
-    
+
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
         lv_label_set_text(widget->label, display_text);
+        lv_obj_set_style_opa(widget->label, LV_OPA_COVER, 0); // Reset opacity
     }
+
+    last_activity_time = k_uptime_get();
+    k_timer_start(&fade_timer, K_MSEC(FADE_TIMEOUT_MS), K_NO_WAIT);
+}
+
+static void fade_timer_init(void) {
+    k_timer_init(&fade_timer, fade_out_display, NULL);
 }
 
 static int last_words_listener(const zmk_event_t *eh) {
@@ -126,14 +152,16 @@ ZMK_SUBSCRIPTION(last_words_listener, zmk_keycode_state_changed);
 int zmk_widget_last_words_init(struct zmk_widget_last_words *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
     lv_obj_set_size(widget->obj, 240, 40);
-    
+
     widget->label = lv_label_create(widget->obj);
     lv_obj_align(widget->label, LV_ALIGN_CENTER, 0, 0);
     lv_label_set_text(widget->label, "...");
     lv_obj_set_style_text_font(widget->label, &lv_font_montserrat_20, 0);
-    
+
     sys_slist_append(&widgets, &widget->node);
-    
+
+    fade_timer_init();
+
     return 0;
 }
 
