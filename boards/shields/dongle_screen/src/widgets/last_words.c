@@ -70,18 +70,35 @@ static void add_word_to_history(const char* word) {
     }
 }
 
+static void fade_anim_cb(void *label, int32_t opa) {
+    lv_obj_set_style_opa((lv_obj_t *)label, opa, 0);
+}
+
 static void fade_out_display(struct k_timer *timer) {
+    // Clear all words and current word
+    state.current_word[0] = '\0';
+    for (int i = 0; i < MAX_WORDS; i++) {
+        state.words[i][0] = '\0';
+    }
+    state.word_count = 0;
+
     struct zmk_widget_last_words *widget;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        lv_label_set_text(widget->label, "");
+        lv_anim_t a;
+        lv_anim_init(&a);
+        lv_anim_set_var(&a, widget->label);
+        lv_anim_set_values(&a, LV_OPA_COVER, LV_OPA_TRANSP);
+        lv_anim_set_time(&a, 1000); // 1 second fade duration
+        lv_anim_set_exec_cb(&a, fade_anim_cb);
+        lv_anim_set_path_cb(&a, lv_anim_path_linear);
+        lv_anim_start(&a);
     }
 }
 
 static void update_display(void) {
     struct zmk_widget_last_words *widget;
-    char display_text[DISPLAY_CHAR_LIMIT + 2] = ""; // +2 for "> " or null
+    char display_text[DISPLAY_CHAR_LIMIT + 2] = "";
 
-    // Show last DISPLAY_CHAR_LIMIT chars of current word or last word
     const char *src = NULL;
     if (strlen(state.current_word) > 0) {
         src = state.current_word;
@@ -99,7 +116,7 @@ static void update_display(void) {
 
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
         lv_label_set_text(widget->label, display_text);
-        lv_obj_set_style_opa(widget->label, LV_OPA_COVER, 0); // Reset opacity
+        lv_obj_set_style_opa(widget->label, LV_OPA_COVER, 0); // Reset opacity to fully visible
     }
 
     last_activity_time = k_uptime_get();
@@ -155,7 +172,7 @@ int zmk_widget_last_words_init(struct zmk_widget_last_words *widget, lv_obj_t *p
 
     widget->label = lv_label_create(widget->obj);
     lv_obj_align(widget->label, LV_ALIGN_CENTER, 0, 0);
-    lv_label_set_text(widget->label, "...");
+    lv_label_set_text(widget->label, "");
     lv_obj_set_style_text_font(widget->label, &lv_font_montserrat_20, 0);
 
     sys_slist_append(&widgets, &widget->node);
